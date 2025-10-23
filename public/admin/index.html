@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Bot Admin Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin: 4px 0;
+            transition: all 0.3s;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .main-content {
+            background-color: #f8f9fa;
+            min-height: 100vh;
+        }
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .status-online { background-color: #28a745; }
+        .status-offline { background-color: #dc3545; }
+        .metric-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .metric-card .card-body {
+            padding: 1.5rem;
+        }
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        .chat-item {
+            border-left: 4px solid #667eea;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .chat-item:hover {
+            transform: translateX(4px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .message-bubble {
+            max-width: 70%;
+            padding: 10px 15px;
+            border-radius: 18px;
+            margin: 5px 0;
+        }
+        .message-sent {
+            background-color: #007bff;
+            color: white;
+            margin-left: auto;
+        }
+        .message-received {
+            background-color: #e9ecef;
+            color: #333;
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 sidebar">
+                <div class="position-sticky pt-3">
+                    <div class="text-center mb-4">
+                        <h4 class="text-white">
+                            <i class="fas fa-robot me-2"></i>
+                            Bot Admin
+                        </h4>
+                    </div>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#" data-section="dashboard">
+                                <i class="fas fa-tachometer-alt me-2"></i>
+                                Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-section="chats">
+                                <i class="fas fa-comments me-2"></i>
+                                Chats
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-section="messages">
+                                <i class="fas fa-paper-plane me-2"></i>
+                                Send Message
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-section="auto-replies">
+                                <i class="fas fa-reply me-2"></i>
+                                Auto-replies
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-section="scheduled">
+                                <i class="fas fa-clock me-2"></i>
+                                Scheduled Messages
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-section="settings">
+                                <i class="fas fa-cog me-2"></i>
+                                Settings
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-section="logs">
+                                <i class="fas fa-file-alt me-2"></i>
+                                Logs
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 main-content">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2" id="page-title">Dashboard</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <div class="btn-group me-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="refresh-btn">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dashboard Section -->
+                <div id="dashboard-section">
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card metric-card">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-users fa-2x mb-2"></i>
+                                    <div class="metric-value" id="total-users">-</div>
+                                    <div>Total Users</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card metric-card">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-comment fa-2x mb-2"></i>
+                                    <div class="metric-value" id="total-messages">-</div>
+                                    <div>Total Messages</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card metric-card">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-reply fa-2x mb-2"></i>
+                                    <div class="metric-value" id="auto-replies">-</div>
+                                    <div>Auto-replies</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card metric-card">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-clock fa-2x mb-2"></i>
+                                    <div class="metric-value" id="scheduled-messages">-</div>
+                                    <div>Scheduled</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-info-circle me-2"></i>Bot Status</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <span class="status-indicator" id="status-indicator"></span>
+                                        <span id="status-text">Checking...</span>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <strong>Uptime:</strong><br>
+                                            <span id="uptime">-</span>
+                                        </div>
+                                        <div class="col-6">
+                                            <strong>Memory Usage:</strong><br>
+                                            <span id="memory-usage">-</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-chart-line me-2"></i>Recent Activity</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="recent-activity">
+                                        <p class="text-muted">No recent activity</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chats Section -->
+                <div id="chats-section" class="hidden">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-comments me-2"></i>Active Chats</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="chats-list">
+                                <div class="text-center">
+                                    <div class="spinner-border" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Send Message Section -->
+                <div id="messages-section" class="hidden">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-paper-plane me-2"></i>Send Message</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="send-message-form">
+                                <div class="mb-3">
+                                    <label for="chat-select" class="form-label">Select Chat</label>
+                                    <select class="form-select" id="chat-select" required>
+                                        <option value="">Loading chats...</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="message-text" class="form-label">Message</label>
+                                    <textarea class="form-control" id="message-text" rows="4" placeholder="Enter your message..." required></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane me-2"></i>Send Message
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Auto-replies Section -->
+                <div id="auto-replies-section" class="hidden">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5><i class="fas fa-reply me-2"></i>Auto-replies</h5>
+                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addAutoReplyModal">
+                                <i class="fas fa-plus me-1"></i>Add Auto-reply
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="auto-replies-list">
+                                <div class="text-center">
+                                    <div class="spinner-border" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scheduled Messages Section -->
+                <div id="scheduled-section" class="hidden">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5><i class="fas fa-clock me-2"></i>Scheduled Messages</h5>
+                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#scheduleMessageModal">
+                                <i class="fas fa-plus me-1"></i>Schedule Message
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="scheduled-messages-list">
+                                <div class="text-center">
+                                    <div class="spinner-border" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Section -->
+                <div id="settings-section" class="hidden">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-cog me-2"></i>Bot Settings</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="settings-form">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="bot-name" class="form-label">Bot Name</label>
+                                            <input type="text" class="form-control" id="bot-name">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="bot-version" class="form-label">Bot Version</label>
+                                            <input type="text" class="form-control" id="bot-version" readonly>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch mb-3">
+                                            <input class="form-check-input" type="checkbox" id="enable-auto-reply">
+                                            <label class="form-check-label" for="enable-auto-reply">
+                                                Enable Auto-replies
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch mb-3">
+                                            <input class="form-check-input" type="checkbox" id="enable-scheduled">
+                                            <label class="form-check-label" for="enable-scheduled">
+                                                Enable Scheduled Messages
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>Save Settings
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Logs Section -->
+                <div id="logs-section" class="hidden">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-file-alt me-2"></i>Bot Logs</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <select class="form-select" id="log-level">
+                                    <option value="info">Info</option>
+                                    <option value="error">Error</option>
+                                    <option value="warn">Warning</option>
+                                    <option value="debug">Debug</option>
+                                </select>
+                            </div>
+                            <div id="logs-content" style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; font-family: monospace; max-height: 400px; overflow-y: auto;">
+                                <div class="text-center">
+                                    <div class="spinner-border" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Add Auto-reply Modal -->
+    <div class="modal fade" id="addAutoReplyModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Auto-reply</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="add-auto-reply-form">
+                        <div class="mb-3">
+                            <label for="trigger-text" class="form-label">Trigger Text</label>
+                            <input type="text" class="form-control" id="trigger-text" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="reply-text" class="form-label">Reply Text</label>
+                            <textarea class="form-control" id="reply-text" rows="3" required></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="save-auto-reply">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedule Message Modal -->
+    <div class="modal fade" id="scheduleMessageModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Schedule Message</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="schedule-message-form">
+                        <div class="mb-3">
+                            <label for="schedule-chat-select" class="form-label">Select Chat</label>
+                            <select class="form-select" id="schedule-chat-select" required>
+                                <option value="">Loading chats...</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="schedule-message-text" class="form-label">Message</label>
+                            <textarea class="form-control" id="schedule-message-text" rows="3" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="schedule-time" class="form-label">Schedule Time</label>
+                            <input type="datetime-local" class="form-control" id="schedule-time" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="save-scheduled-message">Schedule</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // Global variables
+        let socket;
+        let currentSection = 'dashboard';
+        let chats = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeSocket();
+            setupEventListeners();
+            loadDashboard();
+        });
+
+        // Socket.IO connection
+        function initializeSocket() {
+            socket = io();
+            
+            socket.on('connect', function() {
+                console.log('Connected to server');
+            });
+
+            socket.on('bot-status', function(data) {
+                updateBotStatus(data.status);
+            });
+
+            socket.on('new-message', function(data) {
+                console.log('New message received:', data);
+                // Update recent activity
+                updateRecentActivity(data);
+            });
+
+            socket.on('health-check', function(data) {
+                updateHealthData(data);
+            });
+        }
+
+        // Event listeners
+        function setupEventListeners() {
+            // Navigation
+            document.querySelectorAll('[data-section]').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const section = this.getAttribute('data-section');
+                    showSection(section);
+                });
+            });
+
+            // Refresh button
+            document.getElementById('refresh-btn').addEventListener('click', function() {
+                loadCurrentSection();
+            });
+
+            // Send message form
+            document.getElementById('send-message-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                sendMessage();
+            });
+
+            // Settings form
+            document.getElementById('settings-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveSettings();
+            });
+
+            // Auto-reply form
+            document.getElementById('save-auto-reply').addEventListener('click', function() {
+                saveAutoReply();
+            });
+
+            // Schedule message form
+            document.getElementById('save-scheduled-message').addEventListener('click', function() {
+                saveScheduledMessage();
+            });
+
+            // Log level change
+            document.getElementById('log-level').addEventListener('change', function() {
+                loadLogs();
+            });
+        }
+
+        // Navigation
+        function showSection(section) {
+            // Hide all sections
+            document.querySelectorAll('[id$="-section"]').forEach(el => {
+                el.classList.add('hidden');
+            });
+
+            // Show selected section
+            document.getElementById(section + '-section').classList.remove('hidden');
+
+            // Update active nav link
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            document.querySelector(`[data-section="${section}"]`).classList.add('active');
+
+            // Update page title
+            document.getElementById('page-title').textContent = 
+                document.querySelector(`[data-section="${section}"]`).textContent.trim();
+
+            currentSection = section;
+            loadCurrentSection();
+        }
+
+        function loadCurrentSection() {
+            switch(currentSection) {
+                case 'dashboard':
+                    loadDashboard();
+                    break;
+                case 'chats':
+                    loadChats();
+                    break;
+                case 'messages':
+                    loadMessages();
+                    break;
+                case 'auto-replies':
+                    loadAutoReplies();
+                    break;
+                case 'scheduled':
+                    loadScheduledMessages();
+                    break;
+                case 'settings':
+                    loadSettings();
+                    break;
+                case 'logs':
+                    loadLogs();
+                    break;
+            }
+        }
+
+        // Dashboard functions
+        async function loadDashboard() {
+            try {
+                const response = await fetch('/api/admin/status');
+                const data = await response.json();
+                
+                updateBotStatus(data.status);
+                updateMetrics(data.stats);
+                updateHealthData(data);
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+
+        function updateBotStatus(status) {
+            const indicator = document.getElementById('status-indicator');
+            const text = document.getElementById('status-text');
+            
+            if (status === 'ready') {
+                indicator.className = 'status-indicator status-online';
+                text.textContent = 'Online';
+            } else {
+                indicator.className = 'status-indicator status-offline';
+                text.textContent = 'Offline';
+            }
+        }
+
+        function updateMetrics(stats) {
+            document.getElementById('total-users').textContent = stats.total_users || 0;
+            document.getElementById('total-messages').textContent = stats.total_messages || 0;
+            document.getElementById('auto-replies').textContent = stats.auto_replies || 0;
+            document.getElementById('scheduled-messages').textContent = stats.scheduled_messages || 0;
+        }
+
+        function updateHealthData(data) {
+            document.getElementById('uptime').textContent = formatUptime(data.uptime);
+            document.getElementById('memory-usage').textContent = 
+                Math.round(data.memoryUsage.heapUsed / 1024 / 1024) + ' MB';
+        }
+
+        function updateRecentActivity(data) {
+            const container = document.getElementById('recent-activity');
+            const activity = document.createElement('div');
+            activity.className = 'mb-2';
+            activity.innerHTML = `
+                <small class="text-muted">${new Date().toLocaleTimeString()}</small><br>
+                <strong>${data.contact.name}</strong>: ${data.message.body.substring(0, 50)}...
+            `;
+            container.insertBefore(activity, container.firstChild);
+            
+            // Keep only last 5 activities
+            while (container.children.length > 5) {
+                container.removeChild(container.lastChild);
+            }
+        }
+
+        // Chats functions
+        async function loadChats() {
+            try {
+                const response = await fetch('/api/admin/chats');
+                chats = await response.json();
+                
+                const container = document.getElementById('chats-list');
+                container.innerHTML = '';
+                
+                chats.forEach(chat => {
+                    const chatItem = document.createElement('div');
+                    chatItem.className = 'chat-item';
+                    chatItem.innerHTML = `
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">${chat.name || 'Unknown'}</h6>
+                                <small class="text-muted">${chat.isGroup ? 'Group' : 'Individual'}</small>
+                            </div>
+                            <div class="text-end">
+                                <small class="text-muted">${chat.unreadCount || 0} unread</small>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(chatItem);
+                });
+            } catch (error) {
+                console.error('Error loading chats:', error);
+                document.getElementById('chats-list').innerHTML = 
+                    '<p class="text-danger">Error loading chats</p>';
+            }
+        }
+
+        // Messages functions
+        async function loadMessages() {
+            await loadChats();
+            
+            const chatSelect = document.getElementById('chat-select');
+            const scheduleChatSelect = document.getElementById('schedule-chat-select');
+            
+            chatSelect.innerHTML = '<option value="">Select a chat...</option>';
+            scheduleChatSelect.innerHTML = '<option value="">Select a chat...</option>';
+            
+            chats.forEach(chat => {
+                const option = `<option value="${chat.id}">${chat.name || 'Unknown'}</option>`;
+                chatSelect.innerHTML += option;
+                scheduleChatSelect.innerHTML += option;
+            });
+        }
+
+        async function sendMessage() {
+            const chatId = document.getElementById('chat-select').value;
+            const message = document.getElementById('message-text').value;
+            
+            if (!chatId || !message) {
+                alert('Please select a chat and enter a message');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/send-message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ chatId, message })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Message sent successfully!');
+                    document.getElementById('message-text').value = '';
+                } else {
+                    alert('Error sending message: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error sending message:', error);
+                alert('Error sending message');
+            }
+        }
+
+        // Auto-replies functions
+        async function loadAutoReplies() {
+            try {
+                const response = await fetch('/api/admin/auto-replies');
+                const autoReplies = await response.json();
+                
+                const container = document.getElementById('auto-replies-list');
+                container.innerHTML = '';
+                
+                if (autoReplies.length === 0) {
+                    container.innerHTML = '<p class="text-muted">No auto-replies configured</p>';
+                    return;
+                }
+                
+                autoReplies.forEach(reply => {
+                    const replyItem = document.createElement('div');
+                    replyItem.className = 'card mb-2';
+                    replyItem.innerHTML = `
+                        <div class="card-body">
+                            <h6 class="card-title">"${reply.trigger_text}"</h6>
+                            <p class="card-text">${reply.reply_text}</p>
+                            <small class="text-muted">Created: ${new Date(reply.created_at).toLocaleString()}</small>
+                        </div>
+                    `;
+                    container.appendChild(replyItem);
+                });
+            } catch (error) {
+                console.error('Error loading auto-replies:', error);
+                document.getElementById('auto-replies-list').innerHTML = 
+                    '<p class="text-danger">Error loading auto-replies</p>';
+            }
+        }
+
+        async function saveAutoReply() {
+            const trigger = document.getElementById('trigger-text').value;
+            const reply = document.getElementById('reply-text').value;
+            
+            if (!trigger || !reply) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/auto-replies', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ trigger, reply })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Auto-reply added successfully!');
+                    document.getElementById('add-auto-reply-form').reset();
+                    bootstrap.Modal.getInstance(document.getElementById('addAutoReplyModal')).hide();
+                    loadAutoReplies();
+                } else {
+                    alert('Error adding auto-reply: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error adding auto-reply:', error);
+                alert('Error adding auto-reply');
+            }
+        }
+
+        // Scheduled messages functions
+        async function loadScheduledMessages() {
+            // This would load scheduled messages from the API
+            document.getElementById('scheduled-messages-list').innerHTML = 
+                '<p class="text-muted">Scheduled messages feature coming soon</p>';
+        }
+
+        async function saveScheduledMessage() {
+            const chatId = document.getElementById('schedule-chat-select').value;
+            const message = document.getElementById('schedule-message-text').value;
+            const scheduledTime = document.getElementById('schedule-time').value;
+            
+            if (!chatId || !message || !scheduledTime) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/schedule-message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ chatId, message, scheduledTime })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Message scheduled successfully!');
+                    document.getElementById('schedule-message-form').reset();
+                    bootstrap.Modal.getInstance(document.getElementById('scheduleMessageModal')).hide();
+                } else {
+                    alert('Error scheduling message: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error scheduling message:', error);
+                alert('Error scheduling message');
+            }
+        }
+
+        // Settings functions
+        async function loadSettings() {
+            try {
+                const response = await fetch('/api/admin/settings');
+                const settings = await response.json();
+                
+                document.getElementById('bot-name').value = settings.botName || '';
+                document.getElementById('bot-version').value = settings.botVersion || '';
+                document.getElementById('enable-auto-reply').checked = settings.enableAutoReply || false;
+                document.getElementById('enable-scheduled').checked = settings.enableScheduledMessages || false;
+            } catch (error) {
+                console.error('Error loading settings:', error);
+            }
+        }
+
+        async function saveSettings() {
+            const settings = {
+                botName: document.getElementById('bot-name').value,
+                enableAutoReply: document.getElementById('enable-auto-reply').checked,
+                enableScheduledMessages: document.getElementById('enable-scheduled').checked
+            };
+            
+            try {
+                // Save each setting
+                for (const [key, value] of Object.entries(settings)) {
+                    await fetch('/api/admin/settings', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ key, value })
+                    });
+                }
+                
+                alert('Settings saved successfully!');
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                alert('Error saving settings');
+            }
+        }
+
+        // Logs functions
+        async function loadLogs() {
+            const level = document.getElementById('log-level').value;
+            const container = document.getElementById('logs-content');
+            
+            container.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
+            
+            try {
+                const response = await fetch(`/api/admin/logs?level=${level}&limit=50`);
+                const logs = await response.json();
+                
+                container.innerHTML = '';
+                
+                if (logs.length === 0) {
+                    container.innerHTML = '<p class="text-muted">No logs available</p>';
+                    return;
+                }
+                
+                logs.forEach(log => {
+                    const logEntry = document.createElement('div');
+                    logEntry.className = 'mb-2 p-2 border-bottom';
+                    logEntry.innerHTML = `
+                        <div class="d-flex justify-content-between">
+                            <span class="badge bg-${getLogLevelColor(log.level)}">${log.level.toUpperCase()}</span>
+                            <small class="text-muted">${new Date(log.timestamp).toLocaleString()}</small>
+                        </div>
+                        <div class="mt-1">${log.message}</div>
+                    `;
+                    container.appendChild(logEntry);
+                });
+            } catch (error) {
+                console.error('Error loading logs:', error);
+                container.innerHTML = '<p class="text-danger">Error loading logs</p>';
+            }
+        }
+
+        function getLogLevelColor(level) {
+            switch(level) {
+                case 'error': return 'danger';
+                case 'warn': return 'warning';
+                case 'info': return 'info';
+                case 'debug': return 'secondary';
+                default: return 'light';
+            }
+        }
+
+        // Utility functions
+        function formatUptime(seconds) {
+            const days = Math.floor(seconds / 86400);
+            const hours = Math.floor((seconds % 86400) / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = Math.floor(seconds % 60);
+            
+            return `${days}d ${hours}h ${minutes}m ${secs}s`;
+        }
+    </script>
+</body>
+</html>
