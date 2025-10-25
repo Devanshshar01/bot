@@ -17,11 +17,24 @@ const Config = require('./config/config');
 
 class WhatsAppBot {
     constructor() {
+        // Find Chrome executable path
+        const chromePath = path.join(__dirname, '../node_modules/puppeteer-core/.local-chromium/mac-1045629/chrome-mac/Chromium.app/Contents/MacOS/Chromium');
+        
         this.client = new Client({
             authStrategy: new LocalAuth(),
             puppeteer: {
                 headless: true,
-                args: ['--no-sandbox', '--disable-setuid-sandbox']
+                executablePath: fs.existsSync(chromePath) ? chromePath : undefined,
+                args: [
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-accelerated-2d-canvas',
+                    '--no-first-run',
+                    '--no-zygote',
+                    '--disable-gpu'
+                ],
+                timeout: 60000
             }
         });
         

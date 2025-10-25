@@ -1,11 +1,13 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs-extra');
+const Logger = require('../utils/logger');
 
 class Database {
     constructor() {
         this.dbPath = process.env.DB_PATH || './data/bot.db';
         this.db = null;
+        this.logger = new Logger();
     }
 
     async initialize() {
